@@ -72,47 +72,36 @@ jobs:
           path: newman-report.xml
 
   deploy:
-    name: Build and push docker image
+    name: Deploy
     runs-on: ubuntu-latest
     needs: api-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      packages: write
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: Log in to github container registry
-        uses: docker/login-action@v3
+      - name: Package the app
+        run: zip -r expense-tracker.zip app run.py requirements.txt
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set image name
-        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ github.sha }}
-
-      - name: Smoke test the image
-        run: |
-          docker run -d --name api -p 5000:5000 ${{ env.IMAGE }}:${{ github.sha }}
-          for i in $(seq 1 20); do
-            curl -sf http://localhost:5000/health && exit 0
-            sleep 1
-          done
-          docker logs api
-          exit 1
+          name: expense-tracker-${{ github.sha }}
+          path: expense-tracker.zip
 
       - name: Trigger render deploy
         env:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
         if: env.RENDER_DEPLOY_HOOK != ''
         run: curl -sf -X POST "$RENDER_DEPLOY_HOOK"
+
+      - name: Smoke test the live api
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        if: env.APP_URL != ''
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf "$APP_URL/health" && exit 0
+            sleep 10
+          done
+          exit 1

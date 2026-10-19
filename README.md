@@ -66,8 +66,15 @@ The workflow is in .github/workflows/ci.yml and runs on every push and pull requ
 The test job runs flake8 and pytest on python 3.11 and 3.12.
 The api-test job starts the api with gunicorn and runs the postman collection with newman, the junit report is uploaded as an artifact.
 The deploy job only runs on pushes to main after both test jobs pass.
-It builds the docker image, pushes it to github container registry and smoke tests it.
-If a RENDER_DEPLOY_HOOK secret is set in the repo it also triggers a deploy on render.
+It zips the app and uploads it as a build artifact.
+If a RENDER_DEPLOY_HOOK secret is set in the repo it triggers a deploy on render.
+If an APP_URL variable is set it waits for the live /health endpoint to respond.
+
+To set up render, create a free web service from the repo with build command pip install -r requirements.txt and start command gunicorn run:app.
+Turn off auto deploy in render, copy the deploy hook url and save it as the RENDER_DEPLOY_HOOK secret in github.
+Save the render url as the APP_URL repo variable.
+This way render only deploys after the tests pass.
+On the free plan the sqlite file resets when the service restarts, which is fine for a practice project.
 
 ## Files
 
@@ -78,4 +85,3 @@ app/validation.py checks the request bodies.
 run.py starts the app.
 tests/ has the pytest tests.
 postman/ has the collection and local environment.
-Dockerfile builds the production image with gunicorn.
