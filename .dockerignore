@@ -1,0 +1,8 @@
+.venv
+.git
+.github
+__pycache__
+*.db
+tests
+postman
+.pytest_cache
