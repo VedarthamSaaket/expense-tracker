@@ -1,0 +1,353 @@
+{
+  "info": {
+    "name": "Expense Tracker API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('says ok', () => pm.expect(pm.response.json().status).to.eql('ok'));",
+              "pm.test('responds fast', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "List categories",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('has food', () => pm.expect(pm.response.json()).to.include('food'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/categories",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "categories"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create expense",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('returns the expense', () => {",
+              "    pm.expect(body.title).to.eql('Groceries');",
+              "    pm.expect(body.amount).to.eql(1250.5);",
+              "    pm.expect(body.category).to.eql('food');",
+              "    pm.expect(body.id).to.be.a('number');",
+              "});",
+              "pm.collectionVariables.set('expenseId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/expenses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "expenses"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Groceries\",\n  \"amount\": 1250.5,\n  \"category\": \"food\",\n  \"spent_on\": \"2026-10-15\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create expense with bad data",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 400', () => pm.response.to.have.status(400));",
+              "pm.test('lists errors', () => {",
+              "    const errors = pm.response.json().errors;",
+              "    pm.expect(errors).to.include('title is required');",
+              "    pm.expect(errors).to.include('amount must be greater than 0');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/expenses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "expenses"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": -10,\n  \"category\": \"rent\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get expense",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('same id', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('expenseId'))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "expenses",
+            "{{expenseId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "List expenses for month",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('contains created expense', () => {",
+              "    const ids = pm.response.json().map(e => e.id);",
+              "    pm.expect(ids).to.include(Number(pm.collectionVariables.get('expenseId')));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/expenses?month=2026-10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "expenses"
+          ],
+          "query": [
+            {
+              "key": "month",
+              "value": "2026-10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update expense",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('amount updated', () => pm.expect(pm.response.json().amount).to.eql(999));",
+              "pm.test('title kept', () => pm.expect(pm.response.json().title).to.eql('Groceries'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "expenses",
+            "{{expenseId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 999\n}"
+        }
+      }
+    },
+    {
+      "name": "Monthly summary",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('has food total', () => pm.expect(body.by_category.food.total).to.be.at.least(999));",
+              "pm.test('total is a number', () => pm.expect(body.total).to.be.a('number'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/summary?month=2026-10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "summary"
+          ],
+          "query": [
+            {
+              "key": "month",
+              "value": "2026-10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete expense",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "expenses",
+            "{{expenseId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get deleted expense",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "expenses",
+            "{{expenseId}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "expenseId",
+      "value": ""
+    }
+  ]
+}
